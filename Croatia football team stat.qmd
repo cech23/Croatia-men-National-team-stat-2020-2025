@@ -1,0 +1,426 @@
+---
+title: "Croatia football statistics from 2020-2025"
+author: "Christian Dartey"
+format: html
+editor: visual
+theme: lux
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(visdat)
+library(readr)
+#install.packages("shinydashboard")
+library(shiny)
+library(shinydashboard)
+library(bsicons)
+library(bslib)
+library(DT)
+library(reactable)
+
+```
+
+```{r}
+#| include: false
+
+# Load the dataset from a CSV-formatted string and save as a data frame + CSV file
+
+# 1) Put your CSV data into a single character string
+csv_text <- "
+Date,Competition/Event,Home Team,Away Team,Home Goals,Away Goals,Result (W/D/L),Goal Scorers (Croatia only, unless Own Goal/Opponent Scorer listed),Time of Goals (Croatia only, unless Own Goal/Opponent Scorer listed)
+2020-12-16,Friendly,Saudi Arabia,Croatia,0,1,W,\"Andrej Kramarić\",\"82'\"
+2021-03-26,Friendly,Croatia,Slovenia,1,1,D,\"Andrej Kramarić; Opponent: Jaka Bijol (own goal? - info not specific)\",\"39'; Opponent: 90+1'\"
+2021-03-29,Friendly,Croatia,Bulgaria,2,1,W,\"Luka Modrić (pen), Andrej Kramarić; Opponent: Kiril Despodov\",\"76' (pen), 80'; Opponent: 69'\"
+2021-06-06,UEFA Nations League A (2022-23 Season),Croatia,France,1,1,D,\"Nikola Vlašić\",\"\"\n2021-06-10,UEFA Nations League A (2022-23 Season),Denmark,Croatia,0,1,W,\"Mario Pašalić\",\"\"
+2021-06-13,UEFA Nations League A (2022-23 Season),France,Croatia,0,1,W,\"Andrej Kramarić (pen)\",\"\"\n2021-09-22,UEFA Nations League A (2022-23 Season),Croatia,Denmark,2,1,W,\"Borna Sosa, Lovro Majer\",\"\"
+2021-09-25,UEFA Nations League A (2022-23 Season),Austria,Croatia,1,3,W,\"Ivan Perišić, Marko Livaja, Dejan Lovren\",\"\"
+2021-10-08,World Cup Qualifier (2022),Cyprus,Croatia,0,3,W,\"Ivan Perišić, Joško Gvardiol, Marko Livaja\",\"\"
+2021-10-11,World Cup Qualifier (2022),Croatia,Slovakia,2,2,D,\"Andrej Kramarić, Marcelo Brozović\",\"\"
+2021-11-11,World Cup Qualifier (2022),Malta,Croatia,1,7,W,\"Ivan Perišić, Duje Ćaleta-Car, Mario Pašalić, Luka Modrić (pen), Lovro Majer (2), Andrej Kramarić\",\"\"
+2021-11-14,World Cup Qualifier (2022),Croatia,Russia,1,0,W,\"Fedor Kudryashov (own goal)\",\"\"\n2022-11-23,2022 FIFA World Cup Group Stage (F),Morocco,Croatia,0,0,D,\"\",\"\"\n2022-11-27,2022 FIFA World Cup Group Stage (F),Croatia,Canada,4,1,W,\"Andrej Kramarić (2), Marko Livaja, Lovro Majer\",\"\"
+2022-12-01,2022 FIFA World Cup Group Stage (F),Croatia,Belgium,0,0,D,\"\",\"\"
+2022-12-05,2022 FIFA World Cup Round of 16,Japan,Croatia,1,1,D,\"Ivan Perišić\",\"\"
+2022-12-09,2022 FIFA World Cup Quarter-finals,Brazil,Croatia,1,1,D,\"Bruno Petković\",\"\"
+2022-12-13,2022 FIFA World Cup Semi-finals,Argentina,Croatia,3,0,L,\"\",\"\"
+2022-12-17,2022 FIFA World Cup Third Place,Croatia,Morocco,2,1,W,\"Joško Gvardiol, Mislav Oršić\",\"\"
+2023-03-25,UEFA Euro 2024 Qualifying,Croatia,Wales,1,1,D,\"Andrej Kramarić; Opponent: Nathan Broadhead\",\"\"
+2023-03-28,UEFA Euro 2024 Qualifying,Türkiye,Croatia,0,2,W,\"Mateo Kovačić (2)\",\"\"\n2023-06-14,UEFA Nations League Finals Semi-final,Netherlands,Croatia,2,4,W,\"Andrej Kramarić (pen), Mario Pašalić, Bruno Petković, Luka Modrić (pen)\",\"\"\n2023-06-18,UEFA Nations League Final,Croatia,Spain,0,0,D,\"\",\"\"\n2023-09-08,UEFA Euro 2024 Qualifying,Croatia,Latvia,5,0,W,\"Bruno Petković (2), Luka Ivankušec (own goal? - info not specific), Andrej Kramarić, Mario Pašalić\",\"\"
+2023-09-11,UEFA Euro 2024 Qualifying,Armenia,Croatia,0,1,W,\"Andrej Kramarić\",\"\"
+2023-10-12,UEFA Euro 2024 Qualifying,Croatia,Türkiye,0,1,L,\"\",\"\"
+2023-10-15,UEFA Euro 2024 Qualifying,Wales,Croatia,2,1,L,\"Mario Pašalić\",\"\"
+2023-11-18,UEFA Euro 2024 Qualifying,Latvia,Croatia,0,2,W,\"Lovro Majer, Andrej Kramarić\",\"\"
+2023-11-21,UEFA Euro 2024 Qualifying,Croatia,Armenia,1,0,W,\"Ante Budimir\",\"\"
+2024-03-23,Friendly International,Tunisia,Croatia,0,0,D,\"\",\"\"
+2024-03-26,Friendly International,Egypt,Croatia,2,4,W,\"Nikola Vlašić, Bruno Petković, Andrej Kramarić, Lovro Majer\",\"\"
+2024-06-03,Friendly International,Croatia,North Macedonia,3,0,W,\"Lovro Majer (2), Bruno Petković\",\"\"
+2024-06-08,Friendly International,Portugal,Croatia,1,2,W,\"Luka Modrić (pen), Ante Budimir\",\"\"
+2024-06-15,UEFA Euro 2024 Group Stage (B),Spain,Croatia,3,0,L,\"\",\"\"
+2024-06-19,UEFA Euro 2024 Group Stage (B),Croatia,Albania,2,2,D,\"Andrej Kramarić, Klaus Gjasula (own goal)\",\"\"\n2024-06-24,UEFA Euro 2024 Group Stage (B),Croatia,Italy,1,1,D,\"Luka Modrić\",\"\"
+2024-09-05,2024-25 UEFA Nations League A,Portugal,Croatia,2,1,L,\"Borna Sosa\",\"\"
+2024-09-08,2024-25 UEFA Nations League A,Croatia,Poland,1,0,W,\"Bruno Petković\",\"\"
+2024-10-12,2024-25 UEFA Nations League A,Croatia,Scotland,2,1,W,\"Bruno Petković, Luka Modrić\",\"\"
+2024-10-15,2024-25 UEFA Nations League A,Poland,Croatia,3,3,D,\"Andrej Kramarić, Bruno Petković, Ivan Perišić\",\"\"
+2024-11-15,2024-25 UEFA Nations League A,Scotland,Croatia,1,0,L,\"\",\"\"
+2024-11-18,2024-25 UEFA Nations League A,Croatia,Portugal,1,1,D,\"Luka Sučić\",\"\"
+2025-03-20,2024-25 UEFA Nations League Quarter-finals,Croatia,France,2,0,W,\"Andrej Kramarić, Mateo Kovačić\",\"\"
+2025-03-23,2024-25 UEFA Nations League Quarter-finals,France,Croatia,2,0,L,\"\",\"\"
+2025-06-06,2026 FIFA World Cup Qualification,Gibraltar,Croatia,0,7,W,\"Andrej Kramarić (2), Bruno Petković (2), Luka Modrić, Joško Gvardiol, Nikola Vlašić\",\"\"
+2025-06-09,2026 FIFA World Cup Qualification,Croatia,Czech Republic,5,1,W,\"Andrej Kramarić (2), Bruno Petković, Luka Modrić, Lovro Majer\",\"\"
+2025-09-05,2026 FIFA World Cup Qualification,Faroe Islands,Croatia,0,1,W,\"Andrej Kramarić\",\"\"
+2025-09-08,2026 FIFA World Cup Qualification,Croatia,Montenegro,4,0,W,\"Bruno Petković (2), Andrej Kramarić, Nikola Vlašić\",\"\"
+2025-10-09,2026 FIFA World Cup Qualification,Czech Republic,Croatia,0,0,D,\"\",\"\"
+2025-10-12,2026 FIFA World Cup Qualification,Croatia,Gibraltar,3,0,W,\"Luka Modrić, Andrej Kramarić, Bruno Petković\",\"\"
+2025-11-14,2026 FIFA World Cup Qualification,Croatia,Faroe Islands,3,1,W,\"Andrej Kramarić (2), Bruno Petković\",\"\"
+2025-11-17,2026 FIFA World Cup Qualification,Montenegro,Croatia,2,3,W,\"Andrej Kramarić, Luka Modrić, Joško Gvardiol\",\"\"
+"
+```
+
+```{r}
+#| include: false
+# 2) Read the CSV from the text connection
+con <- textConnection(csv_text)
+df <- read.csv(con, stringsAsFactors = FALSE, check.names = FALSE)
+close(con)
+
+# 3) Inspect the data frame
+str(df)
+head(df, 5)
+
+# 4) Optionally coerce numeric columns (they should already be numeric if clean)
+numeric_cols <- c("Home Goals", "Away Goals")
+df[numeric_cols] <- lapply(df[numeric_cols], as.integer)
+
+# 5) Save to CSV file
+output_file <- "croatia_matches.csv"
+write.csv(df, output_file, row.names = FALSE)
+
+library(tibble)
+library(stringr)
+
+croatia_matches <- as_tibble(df, .name_repair = "unique")
+View(croatia_matches)
+
+str(croatia_matches)
+
+```
+
+```{r}
+#| include: false
+library(dplyr)
+library(DT)
+library(janitor)
+#set Date colunm and removing unwanted columns
+croatia_matches <- croatia_matches %>% 
+  mutate(Date = as.Date(Date)) %>% 
+  select(-`unless Own Goal/Opponent Scorer listed)...9`, -`unless Own Goal/Opponent Scorer listed)...11`)
+
+croatia_matches <- croatia_matches %>% 
+  select(-`Time of Goals (Croatia only`)
+croatia_matches
+
+
+```
+
+# Exploratory Analysis
+
+## Record Table
+
+```{r}
+#| include: false
+croatia_matches<- croatia_matches %>% 
+  clean_names() %>% 
+  rename_all(str_to_title)
+
+croatia_matches<- croatia_matches %>% 
+  rename(Result = Result_w_d_l)
+croatia_matches
+
+```
+
+```{r}
+#| echo: false
+datatable(croatia_matches,
+          options = list(pageLength = 10, autoWidth = TRUE),
+          filter = "top",
+          rownames = FALSE)
+```
+
+### KPIs Matrics 
+
+```{r}
+#| include: false
+goals1 <- croatia_matches %>% 
+  filter(str_detect(Away_team,"Cr")) %>%
+  group_by(Away_team) %>% 
+  summarise(Away_goals = sum(Away_goals))
+goals1
+
+goals2 <- croatia_matches %>% 
+  filter(str_detect(Home_team,"Cr")) %>% 
+  group_by(Home_team) %>% 
+  summarise(home_goals = sum(Home_goals))
+goals2
+ 
+
+goals_con1 <- croatia_matches %>% 
+  filter(Away_team != "Croatia") %>% 
+  group_by(Away_team) %>% 
+  summarise(away_goals_conceded = sum(Away_goals))
+
+goals_conced <- goals_con1 %>%
+   summarise(total_con_goals=sum(away_goals_conceded))
+
+  
+ 
+ goals_con2 <- croatia_matches %>% 
+  filter(Home_team != "Croatia") %>%
+   group_by(Home_team) %>% 
+  summarise(home_goals_conceded = sum(Home_goals))
+
+goals_conced2 <- goals_con2 %>%
+   summarise(total_con_goals_home=sum(home_goals_conceded))
+```
+
+```{r}
+#| echo: false
+
+
+played <- nrow(croatia_matches)
+wins   <- sum(croatia_matches$Result == "W")
+draws  <- sum(croatia_matches$Result == "D")
+losses <- sum(croatia_matches$Result == "L")
+goals_scored <- goals1$Away_goals + goals2$home_goals
+goals_conceded <- goals_conced$total_con_goals + goals_conced2$total_con_goals_home
+
+
+kpi <- tibble(
+  Metric = c("Matches Played", "Wins", "Draws", "Losses", "Goals Scored", "Goals Conceded"),
+  Value  = c(played, wins, draws, losses, goals_scored, goals_conceded)
+)
+
+datatable(kpi, options = list(dom = 't'), rownames = FALSE)
+```
+
+### Total matches played in each competition againts their results
+
+```{r}
+#| echo: false
+#calculating total matches played 
+
+total_matches_played <- croatia_matches %>%
+  group_by(Competition_event) %>%
+  summarise(
+    total_matches = n(),
+    wins  = sum(Result == "W", na.rm = TRUE),
+    draws = sum(Result == "D", na.rm = TRUE),
+    losses = sum(Result == "L", na.rm = TRUE),
+    .groups = "drop")
+  datatable(total_matches_played,
+          options = list(pageLength = 5, autoWidth = TRUE),
+          rownames = FALSE)
+
+
+  
+  
+ 
+```
+
+# Goals
+
+## Total goals scored in each competition in away games
+
+```{r}
+#| echo: false
+total_goal_com_away  <- croatia_matches %>% 
+  filter(Away_team == "Croatia") %>%
+  group_by(Competition_event) %>% 
+  summarise(total_scored_away = sum(Away_goals))
+  
+  
+total_goal_com_away_home  <-  croatia_matches %>%
+  filter(Home_team == "Croatia") %>%
+  group_by(Competition_event) %>% 
+  summarise(total_scored_home = sum(Home_goals)) %>% 
+  left_join(total_goal_com_away, by = "Competition_event")
+
+datatable(total_goal_com_away_home,
+          options = list(pageLength = 5, autoWidth = TRUE),
+          rownames = FALSE)
+
+
+```
+
+### Total goals conceded in all competition
+
+```{r}
+#| echo: false
+total_goal_con_away  <- croatia_matches %>% 
+  filter(Away_team != "Croatia") %>%
+  group_by(Competition_event) %>% 
+  summarise(total_goals_conceded_away = sum(Away_goals))
+  
+  
+total_goal_con_away_home  <-  croatia_matches %>%
+  filter(Home_team != "Croatia") %>%
+  group_by(Competition_event) %>% 
+  summarise(total_goals_conceded_home = sum(Home_goals)) %>% 
+  left_join(total_goal_con_away, by = "Competition_event") %>% 
+  mutate(total_goals_conceded_away = case_when(
+    is.na(total_goals_conceded_away) ~ 0,
+    TRUE ~ total_goals_conceded_away
+  ))
+
+
+
+datatable(total_goal_con_away_home,
+          options = list(pageLength = 5, autoWidth = TRUE),
+          rownames = FALSE)
+```
+
+### Average goals scored and conceded in each competition
+
+```{r}
+#| echo: false
+average_goal_scored_away <- croatia_matches %>% 
+  filter(Away_team == "Croatia") %>%
+  group_by(Competition_event) %>% 
+  summarise(average_scored_away = mean(Away_goals))
+  
+  
+average_goal_scored_away_home  <-  croatia_matches %>%
+  filter(Home_team == "Croatia") %>%
+  group_by(Competition_event) %>% 
+  summarise(average_scored_home = mean(Home_goals)) %>% 
+  left_join(average_goal_scored_away, by = "Competition_event")
+
+datatable(average_goal_scored_away_home,
+          options = list(pageLength = 7, autoWidth = TRUE),
+          rownames = FALSE)
+```
+
+```{r}
+#| include: false
+total_year_goals_scored <- croatia_matches %>%
+  select(Date, Away_team, Home_team, Result, Away_goals, Home_goals) %>% 
+  mutate(year = format(Date, "%Y")) %>% 
+  filter(Away_team == "Croatia") %>% 
+  group_by(year) %>% 
+  summarise(total_goals_scored_a = sum(Away_goals)) %>% 
+  left_join(home_goals_scored <-
+              croatia_matches %>%
+  select(Date, Away_team, Home_team, Result, Away_goals, Home_goals) %>% 
+     mutate(year = format(Date, "%Y")) %>% 
+  filter(Home_team == "Croatia") %>% 
+  group_by(year) %>% 
+  summarise(total_goals_scored_h = sum(Home_goals)) 
+  )
+
+total_year_goals_scored <-total_year_goals_scored %>% 
+ mutate(
+    total_goals_scored_h = case_when(
+      is.na(total_goals_scored_h) ~ 0,
+      TRUE ~ total_goals_scored_h
+    )) %>% 
+  group_by(year) %>% 
+  summarise(total_goals_scored = total_goals_scored_a + total_goals_scored_h) %>% 
+  arrange(year)
+total_year_goals_scored
+ 
+```
+
+### Total goals scored and conceded each year across all competition
+
+```{r}
+#| echo: false
+total_year_goals_conceded <- croatia_matches %>%
+  select(Date, Away_team, Home_team, Result, Away_goals, Home_goals, Competition_event) %>% 
+  mutate(year = format(Date, "%Y")) %>% 
+  filter(Away_team != "Croatia") %>% 
+  group_by(year) %>% 
+  summarise(total_goals_conceded_a = sum(Away_goals)) %>% 
+  left_join(home_goals_conceded <-
+              croatia_matches %>%
+  select(Date, Away_team, Home_team, Result, Away_goals, Home_goals, Competition_event) %>% 
+     mutate(year = format(Date, "%Y")) %>% 
+  filter(Home_team != "Croatia") %>% 
+  group_by(year) %>% 
+  summarise(total_goals_conceded_h = sum(Home_goals)),
+  by = "year")
+
+total_year_goals_conceded <-total_year_goals_conceded %>% 
+  group_by(year) %>% 
+  summarise(total_goals_conceded = total_goals_conceded_a + total_goals_conceded_h) %>% 
+  arrange(year)
+
+
+
+
+
+```
+
+```{r}
+#| echo: false
+data_join <- left_join(total_year_goals_scored, total_year_goals_conceded, by = "year") %>% 
+  mutate(total_goals_conceded = case_when(
+    is.na(total_goals_conceded) ~ 0,
+    TRUE ~ total_goals_conceded
+  ))
+total_competition_played <- croatia_matches %>% 
+  select(Date, Competition_event) %>% 
+  mutate(year = format(Date, "%Y")) %>% 
+  group_by(year) %>% 
+  summarise(total_games_played = n())
+  
+goals_scored_conced_ <- left_join(data_join, total_competition_played, by = "year")
+
+datatable(goals_scored_conced_,
+          options = list(pageLength = 6, autoWidth = TRUE),
+          rownames = FALSE)
+```
+
+### Visualizing total goals scored and conceded each year across all competition
+
+```{r}
+#| echo: false
+plot1 <- ggplot()+
+  geom_line(data = goals_scored_conced_, aes(x = year, y = total_goals_scored, group=1, colour = "Goals scored"), linewidth = 1) + geom_line(data = goals_scored_conced_, aes(x = year, y = total_goals_conceded,group=1, colour = "Goals conceded"), linewidth = 1)+ 
+geom_text(
+    data = goals_scored_conced_,
+    aes(x = year, y = total_goals_scored, label = total_goals_scored),
+    vjust = -0.5, size = 3
+  ) + geom_text(
+    data = goals_scored_conced_,
+    aes(x = year, y = total_goals_conceded, label = total_goals_conceded),
+    vjust = -0.5, size = 3
+  ) +
+
+  theme_minimal() +
+  labs(title = "Total Goals Scored vs Conceded per Year across all competition",
+       x = "Year", y = "Number of goals", color = "Category")
+ggplotly(plot1)
+  
+```
+
+ 
+
+### 2025 goals scorers
+```{r}
+#| echo: false
+goals_scorers <- croatia_matches %>%
+  mutate(year =  format(Date, "%Y")) %>% 
+  filter(year == 2025) %>% 
+  group_by(Goal_scorers_croatia_only) %>% 
+  summarise(goals = n()) %>% 
+  select(Goal_scorers_croatia_only)
+
+datatable(goals_scorers, options = list(pageLength = 10, autoWidth = TRUE), rownames = FALSE)
+
+
+  
+```
+
+
+
